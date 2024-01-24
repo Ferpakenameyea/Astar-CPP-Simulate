@@ -1,0 +1,208 @@
+#pragma once
+
+#include <graphics.h>
+#include <vector>
+#include <thread>
+#include <chrono>
+
+enum Direction {
+	UP, DOWN, LEFT, RIGHT, NONE
+};
+
+struct Block {
+	bool walkable = true;
+	bool visited = false;
+	bool startPos = false;
+	bool destPos = false;
+	bool showPath = false;
+	Direction parentDirection = NONE;
+
+	COLORREF GetFillColor() const {
+		if (this->startPos) {
+			return YELLOW;
+		}
+
+		if (this->destPos) {
+			return RED;
+		}
+
+		if (this->showPath) {
+			return BLUE;
+		}
+
+		if (!this->walkable) {
+			return BLACK;
+		}
+
+		if (!this->visited) {
+			return WHITE;
+		}
+
+		return LIGHTGREEN;
+	}
+
+
+};
+
+class MapMesh {
+private:
+
+	std::vector<std::vector<Block>> map;
+	std::pair<int, int> startPos = { -1, -1 };
+	std::pair<int, int> destPos = { -1, -1 };
+
+public:
+	bool InMapRange(int x, int y) const {
+		return !(x < 0 || y < 0 || x >= width || y >= height);
+	}
+
+	const int width;
+
+	const int height;
+
+	const std::pair<int, int>& GetStartPos() const {
+		return this->startPos;
+	}
+
+	const std::pair<int, int>& GetDestPos() const {
+		return this->destPos;
+	}
+
+	MapMesh(int width, int height) : width(width), height(height) {
+		this->map.resize(width);
+		for (auto& column : this->map) {
+			column.resize(height);
+		}
+	}
+
+	void OnDrawCanvas(const int canvasWidth, const int canvasHeight) const {
+		const int blockWidth = canvasWidth / this->width;
+		const int blockHeight = canvasHeight / this->height;
+
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				const int drawX = blockWidth * i;
+				const int drawY = blockHeight * j;
+
+				setlinecolor(BLACK);
+				setfillcolor(map[i][j].GetFillColor());
+
+				fillrectangle(drawX, drawY, drawX + blockWidth, drawY + blockHeight);
+			}
+		}
+	}
+
+	void FillBarricade(int x, int y) {
+		if (!this->map[x][y].startPos) {
+			this->map[x][y].walkable = false;
+		}
+	}
+
+	void ClearBarricade(int x, int y) {
+		this->map[x][y].walkable = true;
+	}
+
+	int SetStartingPoint(int x, int y) {
+		if (!InMapRange(x, y)) {
+			return -1;
+		}
+
+		if (map[x][y].walkable == false) {
+			return -2;
+		}
+
+		map[x][y].startPos = true;
+		if (this->startPos.first != -1) {
+			map[this->startPos.first][this->startPos.second].startPos = false;
+		}
+
+		this->startPos = { x, y };
+		return 0;
+	}
+
+	int SetDestPoint(int x, int y) {
+		if (!InMapRange(x, y)) {
+			return -1;
+		}
+
+		if (map[x][y].walkable == false) {
+			return -2;
+		}
+
+		map[x][y].destPos = true;
+		if (this->destPos.first != -1) {
+			map[this->destPos.first][this->destPos.second].destPos = false;
+		}
+
+		this->destPos = { x, y };
+		return 0;
+	}
+
+	bool Visited(const int x, const int y) const {
+		return this->map[x][y].visited;
+	}
+
+	void MarkVisit(const int x, const int y) {
+		this->map[x][y].visited = true;
+	}
+
+	void SetParent(const int x, const int y, const Direction direction) {
+		this->map[x][y].parentDirection = direction;
+	}
+
+	void ShowPath(const int delay_millis) {
+		int x = this->destPos.first, y = this->destPos.second;
+		while (x != this->startPos.first || y != this->startPos.second) {
+			switch (this->map[x][y].parentDirection) {
+			case UP:
+				y--;
+				break;
+			case DOWN:
+				y++;
+				break;
+			case LEFT:
+				x--;
+				break;
+			case RIGHT:
+				x++;
+				break;
+			}
+			this->map[x][y].showPath = true;
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+	}
+
+	bool Ready() const {
+		return this->GetStartPos().first != -1 && this->GetDestPos().first != -1;
+	}
+
+	bool Walkable(const int x, const int y) const {
+		return this->map[x][y].walkable;
+	}
+
+	void Reset() {
+		for (auto& _ : this->map) {
+			for (auto& elem : _) {
+				elem.visited = false;
+				elem.showPath = false;
+				elem.parentDirection = NONE;
+			}
+		}
+	}
+
+	void Clear() {
+		for (auto& _ : this->map) {
+			for (auto& elem : _) {
+				elem.visited = false;
+				elem.showPath = false;
+				elem.parentDirection = NONE;
+				elem.destPos = false;
+				elem.startPos = false;
+				elem.walkable = true;
+			}
+		}
+		this->startPos = { -1, -1 };
+		this->destPos = { -1, -1 };
+	}
+};
