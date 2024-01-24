@@ -8,7 +8,6 @@
 #include <Windows.h>
 #include <graphics.h>
 
-#include "func.h"
 #include "map"
 
 static MapMesh map(50, 50);
@@ -135,7 +134,7 @@ private:
 		map.ShowPath(1);
 		this->running = false;
 	}
-	
+
 public:
 	const bool IsRunning() const {
 		return this->running;
