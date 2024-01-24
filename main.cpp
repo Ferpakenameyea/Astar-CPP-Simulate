@@ -85,17 +85,6 @@ private:
 
 	bool running = false;
 	
-public:
-	const bool IsRunning() const {
-		return this->running;
-	}
-
-	void Run(const std::pair<int, int> from, const std::pair<int, int> to, const int delay_micro) {
-		std::thread([this, from, to, delay_micro]() {
-			this->_Run(from, to, delay_micro);
-			}).detach();
-	}
-
 	void _Run(const std::pair<int, int> from, const std::pair<int, int> to, const int delay_micro) {
 		if (this->running) {
 			return;
@@ -146,6 +135,18 @@ public:
 		map.ShowPath(1);
 		this->running = false;
 	}
+	
+public:
+	const bool IsRunning() const {
+		return this->running;
+	}
+
+	void Run(const std::pair<int, int> from, const std::pair<int, int> to, const int delay_micro) {
+		std::thread([this, from, to, delay_micro]() {
+			this->_Run(from, to, delay_micro);
+			}).detach();
+	}
+
 };
 
 class UserControlTask {
